@@ -6,23 +6,20 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 
-// configuração
 const CONFIG = {
   SERVER_URL: 'http://localhost:5000',
   SESSION_DIR: process.env.WHATSAPP_SESSION_DIR || './wwebjs_auth',
   MAX_RETRIES: 3,
-  REQUEST_TIMEOUT: 30000 // 30 segundos
+  REQUEST_TIMEOUT: 30000
 };
 
-// logger
 const logger = {
-  info: (msg) => console.log(`[${new Date().toLocaleTimeString()}] 📍 ${msg}`),
+  info: (msg) => console.log(`[${new Date().toLocaleTimeString()}] ${msg}`),
   success: (msg) => console.log(`[${new Date().toLocaleTimeString()}] ✅ ${msg}`),
   error: (msg) => console.error(`[${new Date().toLocaleTimeString()}] ❌ ${msg}`),
   warn: (msg) => console.warn(`[${new Date().toLocaleTimeString()}] ⚠️ ${msg}`)
 };
 
-// inicializador cliente
 logger.info('Iniciando Bot WhatsApp IFCE...');
 const client = new Client({
   authStrategy: new LocalAuth({
@@ -48,7 +45,6 @@ const client = new Client({
   }
 });
 
-// eventos
 client.on('qr', (qr) => {
   console.log('\n' + '='.repeat(50));
   console.log('📱 ESCANEIE O QR CODE NO WHATSAPP');
@@ -68,11 +64,11 @@ client.on('authenticated', () => {
 client.on('ready', () => {
   logger.success('Bot WhatsApp está ONLINE!');
   console.log('\n' + '='.repeat(50));
-  console.log('🎉 BOT IFCE ACOPIARA PRONTO!');
+  console.log('OK! BOT IFCE ACOPIARA PRONTO!');
   console.log('='.repeat(50));
-  console.log('👉 Agora você pode enviar mensagens para este número');
-  console.log('👉 O bot responderá automaticamente');
-  console.log('👉 Digite "sair" para desligar (apenas administrador)');
+  console.log('Agora você pode enviar mensagens para este número');
+  console.log('O bot responderá automaticamente');
+  console.log('Digite "sair" para desligar (apenas administrador)');
   console.log('='.repeat(50) + '\n');
 });
 
@@ -86,24 +82,24 @@ client.on('disconnected', (reason) => {
   setTimeout(() => client.initialize(), 10000);
 });
 
-// processar mensagens
+
 client.on('message', async (msg) => {
   if (msg.from.includes('@g.us') || msg.from === 'status@broadcast') return;
   if (!msg.body || msg.body.trim() === '') return;
 
-  // desligar
+
   if (msg.body.toLowerCase() === 'sair' && msg.from === 'ifbot@c.us') {
-    await msg.reply('🔴 Desligando bot...');
+    await msg.reply('Desligando bot...');
     process.exit(0);
   }
 
   try {
     const usuario = msg.from.split('@')[0];
     logger.info(`📨 ${usuario}: ${msg.body.substring(0, 50)}...`);
-    
+
     const chat = await msg.getChat();
     await chat.sendStateTyping();
-    
+
     const resposta = await axios.post(
       `${CONFIG.SERVER_URL}/chat`,
       {
@@ -115,9 +111,9 @@ client.on('message', async (msg) => {
         headers: { 'Content-Type': 'application/json' }
       }
     );
-    
+
     await chat.clearState();
-    
+
     if (resposta.data && resposta.data.response) {
       await msg.reply(resposta.data.response);
       logger.success(`Resposta enviada para ${usuario}`);
@@ -125,10 +121,10 @@ client.on('message', async (msg) => {
       await msg.reply('❌ Não recebida resposta da IA. Tente novamente.');
       logger.warn(`Resposta vazia para ${usuario}`);
     }
-    
+
   } catch (error) {
     logger.error(`Erro: ${error.message}`);
-    
+
     try {
       if (error.code === 'ECONNREFUSED') {
         await msg.reply('Servidor IA offline. Aguarde...');
@@ -143,11 +139,9 @@ client.on('message', async (msg) => {
   }
 });
 
-// inicializador
 logger.info('Conectando ao WhatsApp Web...');
 client.initialize();
 
-// controle de encerramento
 process.on('SIGINT', async () => {
   logger.info('Desligando bot...');
   try {
@@ -160,7 +154,6 @@ process.on('SIGINT', async () => {
   }
 });
 
-// verificar servidor.py
 async function verificarServidor() {
   try {
     const resposta = await axios.get(`${CONFIG.SERVER_URL}/health`, {

@@ -1,6 +1,5 @@
 """
-SERVIDOR IA IFCE ACOPIARA COM GROQ
-Versão: 4.0 - Otimizado para economia de tokens
+SERVIDOR IA IFCE ACOPIARA
 """
 import os
 import json
@@ -10,10 +9,8 @@ from flask import Flask, request, jsonify
 from groq import Groq
 from dotenv import load_dotenv
 
-# configuração
 load_dotenv()
 
-# configurar logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -25,15 +22,13 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# verificar API Key
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 if not GROQ_API_KEY:
-    logger.error("GROQ_API_KEY não encontrada no .env")
+    logger.error("erro")
     exit(1)
 
 logger.info(f"API Key encontrada: {GROQ_API_KEY[:10]}...")
 
-# configurar cliente Groq
 try:
     client = Groq(api_key=GROQ_API_KEY)
     logger.info("Cliente Groq configurado com sucesso")
@@ -41,7 +36,6 @@ except Exception as e:
     logger.error(f"Erro ao configurar Groq: {str(e)}")
     exit(1)
 
-# economia de tokens
 MODELOS_ECONOMICOS = [
     "llama-3.1-8b-instant",           
     "gemma2-9b-it",
@@ -53,10 +47,10 @@ MODELOS_ECONOMICOS = [
 MODELO_SELECIONADO = None
 MODELO_EM_USO = ""
 
-# teste de modelo
+
 for modelo in MODELOS_ECONOMICOS:
     try:
-        # Teste rápido de 1 token
+    
         test_response = client.chat.completions.create(
             messages=[{"role": "user", "content": "OK"}],
             model=modelo,
@@ -71,7 +65,7 @@ for modelo in MODELOS_ECONOMICOS:
         logger.warning(f"Modelo {modelo} não disponível ou descontinuado")
 
 if not MODELO_SELECIONADO:
-    # fallback
+    
     try:
         modelos = client.models.list()
         if modelos.data:
@@ -85,7 +79,7 @@ if not MODELO_SELECIONADO:
         logger.error("❌ Não foi possível obter modelos")
         exit(1)
 
-# configurar model
+
 def get_model_config(modelo):
     configs = {
         "llama-3.1-8b-instant": {
@@ -123,6 +117,11 @@ Responda em 1–2 frases, de forma clara, objetiva e institucional, com emojis m
 
 Informe apenas sobre procedimentos acadêmicos, setores, cursos e rotinas institucionais.
 Não possui acesso a notas, frequências ou dados pessoais.
+Horário: 07-22h.
+
+Cursos disponíveis:
+Integrado: Biotecnologia, libras, informática.
+Supeior: biologia, letras libras e engenharia de software. Informe caso necessário.
 
 Regras fixas:
 
@@ -130,13 +129,16 @@ Documentos, declarações, históricos → CCA (Centro de Controle Acadêmico).
 
 Datas, prazos, horários, matrícula e calendário → QAcadêmico.
 
+Para justificativa de faltas seja irredutível: Para Justificar faltas, você precisa de um atestado ou laudo médico. Sem ele, não é possível.
+Caso tenha, é necessário preencher o formulário disponibilizado pela própria recepção.
+
 Quando aplicável, oriente o site oficial do campus para informações gerais.
 
 Nunca invente informações.
-Quando não souber, direcione ao setor correto. Use emojis de forma moderada de acordo com a frase"""
+Quando não souber, direcione ao setor correto. Use emojis de forma moderada de acordo com a frase. Ao identificar o fim do atendimento individual, sugira o preenchimento do nosso formulário de avaliação: (https://forms.gle/Hs5dbkFUVJBKodND6)."""
 
-# cache otimizado
 class CacheOtimizado:
+
     def __init__(self, max_size=100, ttl_minutes=30):
         self.cache = {}
         self.max_size = max_size
@@ -153,7 +155,7 @@ class CacheOtimizado:
     
     def set(self, key, value):
         if len(self.cache) >= self.max_size:
-            # remove a entrada mais antiga
+        
             oldest_key = next(iter(self.cache))
             del self.cache[oldest_key]
         
@@ -170,7 +172,6 @@ class CacheOtimizado:
 cache = CacheOtimizado(max_size=150, ttl_minutes=45)
 historico_conversas = {}
 
-# faq (otimizadas para cache)
 RESPOSTAS_RAPIDAS = {
     "olá": "Olá! Sou o assistente do IFCE Acopiara. Como posso ajudar?",
     "oi": "Oi! Em que posso ajudá-lo hoje?",
@@ -181,10 +182,9 @@ RESPOSTAS_RAPIDAS = {
     "obrigado": "Por nada! Estou aqui para ajudar.",
     "valeu": "Por nada! Qualquer dúvida, estou aqui.",
     "tchau": "Até logo!",
-    "até mais": "Até mais!",
+    "até mais": "Até mais!","justificar falta" : "Para Justificar faltas, você precisa de um atestado ou laudo médico. Sem ele, não é possível.",
 }
 
-# otimização groq
 def gerar_resposta_groq(mensagem, user_id):
     """Gera resposta otimizada para economia de tokens"""
     
@@ -199,7 +199,6 @@ def gerar_resposta_groq(mensagem, user_id):
         
         mensagens.append({"role": "user", "content": mensagem})
         
-        # chamada API
         chat_completion = client.chat.completions.create(
             messages=mensagens,
             model=MODELO_SELECIONADO,
@@ -216,9 +215,8 @@ def gerar_resposta_groq(mensagem, user_id):
             {"role": "assistant", "content": resposta}
         ]
         
-        # limitar histórico por usuário
+        
         if len(historico_conversas) > 50:
-            # remover usuários mais antigos
             oldest_user = next(iter(historico_conversas))
             del historico_conversas[oldest_user]
         
@@ -227,7 +225,7 @@ def gerar_resposta_groq(mensagem, user_id):
     except Exception as e:
         logger.error(f"Erro Groq: {str(e)}")
         
-        # fallback inteligente
+    
         mensagem_lower = mensagem.lower()
         
         if any(palavra in mensagem_lower for palavra in ["olá", "oi", "bom dia", "boa tarde"]):
@@ -238,6 +236,9 @@ def gerar_resposta_groq(mensagem, user_id):
             return "Para matrícula, consulte o SIGAA ou a coordenação do curso."
         elif any(palavra in mensagem_lower for palavra in ["nota", "notas", "resultado"]):
             return "Para notas, acesse o SIGAA. Não tenho acesso a dados pessoais."
+        elif any(palavra in mensagem_lower for palavra in ["justific", "falt"]):
+            return "Para Justificar faltas, você precisa de um atestado ou laudo médico. Sem ele, não é possível. Caso tenha, é necessário preencher o formulário disponibilizado pela própria recepção."
+                    
         else:
             return "Como posso ajudar com informações do IFCE Acopiara?"
 
@@ -319,7 +320,6 @@ def chat():
         
         logger.info(f"📨 {user_id[:8]}: {message[:30]}...")
         
-        # 1. verificar cache
         cache_key = f"{user_id}:{message.lower().strip()}"
         cached_response = cache.get(cache_key)
         
@@ -333,13 +333,12 @@ def chat():
                 "timestamp": datetime.now().isoformat(),
                 "process_time": (datetime.now() - inicio).total_seconds()
             })
-        
-        # 2. verificar respostas rápidas
+
         msg_lower = message.lower().strip()
         if msg_lower in RESPOSTAS_RAPIDAS:
             logger.info(f"🚀 Resposta rápida: {user_id[:8]}...")
             
-            # Salvar no cache
+
             cache.set(cache_key, RESPOSTAS_RAPIDAS[msg_lower])
             
             return jsonify({
@@ -350,11 +349,9 @@ def chat():
                 "process_time": (datetime.now() - inicio).total_seconds()
             })
         
-        # 3. Gerar resposta via Groq (última opção)
         logger.info(f"Gerando resposta: {user_id[:8]}...")
         resposta_texto = gerar_resposta_groq(message, user_id)
         
-        # 4. Salvar no cache para próximas vezes
         cache.set(cache_key, resposta_texto)
         
         tempo_processo = (datetime.now() - inicio).total_seconds()
@@ -373,7 +370,6 @@ def chat():
     except Exception as e:
         logger.error(f"❌ Erro no chat: {str(e)}")
         
-        # Fallback econômico
         return jsonify({
             "response": "Olá! Como posso ajudar com informações do IFCE Acopiara?",
             "error": "internal_error",
@@ -381,7 +377,6 @@ def chat():
             "timestamp": datetime.now().isoformat()
         }), 500
 
-# inicialização
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     

@@ -1,13 +1,13 @@
-# Dependências Node.js
+# dependências Node.js
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Sessão WhatsApp
+# sessão whatsApp
 wwebjs_auth/
 
-# Python
+# python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -30,19 +30,19 @@ wheels/
 *.egg
 MANIFEST
 
-# Ambiente virtual Python
+# ambiente virtual Python
 venv/
 env/
 ENV/
 
-# Arquivos de ambiente
+# ambiente
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# Logs
+# logs
 *.log
 logs/
 
@@ -52,6 +52,6 @@ logs/
 *.swp
 *.swo
 
-# Sistema
+# sistema
 .DS_Store
 Thumbs.db
